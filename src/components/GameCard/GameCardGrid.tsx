@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Edit2, Trash2, Play, Check, Star, Circle } from 'lucide-react';
 import { useGameStore } from '@/store/useGameStore';
 import { PLATFORM_COLORS, STATUS_LABELS } from '@/utils/constants';
+import StarRating from '@/components/StarRating';
 import type { Game, GameStatus } from '@/types/game';
 
 interface GameCardGridProps {
@@ -98,6 +99,9 @@ export default function GameCardGrid({ game, index }: GameCardGridProps) {
             <h3 className="font-retro text-lg text-white truncate" title={game.name}>
               {game.name}
             </h3>
+            <div className="mt-1">
+              <StarRating rating={game.rating} size="sm" readonly showValue />
+            </div>
             <div className="flex items-center justify-between mt-1">
               <span className="font-retro text-sm text-gray-400">
                 {game.releaseYear}

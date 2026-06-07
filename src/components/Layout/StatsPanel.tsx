@@ -1,5 +1,6 @@
 import { useGameStore } from '@/store/useGameStore';
 import { PLATFORM_COLORS, STATUS_LABELS, STATUS_ICONS } from '@/utils/constants';
+import StarRating from '@/components/StarRating';
 
 function PieChart({ data }: { data: Record<string, number> }) {
   const entries = Object.entries(data).sort((a, b) => b[1] - a[1]);
@@ -116,6 +117,23 @@ export default function StatsPanel() {
               {Object.keys(stats.byPlatform).length}
             </div>
             <div className="font-retro text-sm text-gray-400">平台数量</div>
+          </div>
+        </div>
+
+        <div className="mb-6 p-4 bg-bg-darker border border-neon-yellow/30">
+          <div className="flex items-center justify-between mb-3">
+            <span className="font-retro text-sm text-gray-300">平均评分</span>
+            <span className="font-pixel text-xl text-neon-yellow neon-text">
+              {stats.averageRating > 0 ? stats.averageRating.toFixed(1) : '--'}
+            </span>
+          </div>
+          <div className="flex items-center justify-center mb-3">
+            <StarRating rating={stats.averageRating} size="md" readonly />
+          </div>
+          <div className="text-center">
+            <span className="font-retro text-xs text-gray-500">
+              共 {stats.totalReviews} 条评价
+            </span>
           </div>
         </div>
 

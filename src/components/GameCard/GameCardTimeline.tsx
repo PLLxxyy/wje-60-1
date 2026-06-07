@@ -1,6 +1,7 @@
 import { Edit2, Trash2, Play, Check, Star, Circle } from 'lucide-react';
 import { useGameStore } from '@/store/useGameStore';
 import { PLATFORM_COLORS, STATUS_LABELS } from '@/utils/constants';
+import StarRating from '@/components/StarRating';
 import type { Game, GameStatus } from '@/types/game';
 
 interface GameCardTimelineProps {
@@ -70,6 +71,9 @@ export default function GameCardTimeline({ game, index }: GameCardTimelineProps)
                 >
                   {game.platform}
                 </span>
+              </div>
+              <div className={`mt-1 ${isLeft ? 'flex justify-end' : 'flex justify-start'}`}>
+                <StarRating rating={game.rating} size="sm" readonly showValue />
               </div>
               <div className="flex items-center gap-2 mt-1 font-retro text-sm text-gray-400 justify-end">
                 <span>{game.genre}</span>

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { X, Upload } from 'lucide-react';
+import { X, Upload, Star, MessageSquare } from 'lucide-react';
 import { useGameStore } from '@/store/useGameStore';
 import { PLATFORMS, GENRES, DEFAULT_COVER } from '@/utils/constants';
 import { fileToBase64 } from '@/utils/storage';
-import type { GameStatus } from '@/types/game';
+import StarRating from '@/components/StarRating';
+import type { GameStatus, Review } from '@/types/game';
 
 interface GameFormData {
   name: string;
@@ -14,10 +15,11 @@ interface GameFormData {
   coverImage: string;
   romFileName: string;
   status: GameStatus;
+  rating: number;
 }
 
 export default function GameModal() {
-  const { isModalOpen, selectedGame, closeModal, addGame, updateGame } = useGameStore();
+  const { isModalOpen, selectedGame, closeModal, addGame, updateGame, addReview } = useGameStore();
   
   const [formData, setFormData] = useState<GameFormData>({
     name: '',
@@ -28,9 +30,12 @@ export default function GameModal() {
     coverImage: DEFAULT_COVER,
     romFileName: '',
     status: 'none',
+    rating: 0,
   });
 
   const [coverPreview, setCoverPreview] = useState<string>(DEFAULT_COVER);
+  const [newReviewRating, setNewReviewRating] = useState<number>(5);
+  const [newReviewContent, setNewReviewContent] = useState<string>('');
 
   useEffect(() => {
     if (selectedGame) {
@@ -43,6 +48,7 @@ export default function GameModal() {
         coverImage: selectedGame.coverImage,
         romFileName: selectedGame.romFileName,
         status: selectedGame.status,
+        rating: selectedGame.rating || 0,
       });
       setCoverPreview(selectedGame.coverImage);
     } else {
@@ -55,9 +61,12 @@ export default function GameModal() {
         coverImage: DEFAULT_COVER,
         romFileName: '',
         status: 'none',
+        rating: 0,
       });
       setCoverPreview(DEFAULT_COVER);
     }
+    setNewReviewRating(5);
+    setNewReviewContent('');
   }, [selectedGame, isModalOpen]);
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,6 +99,7 @@ export default function GameModal() {
       ...formData,
       releaseYear: Number(formData.releaseYear),
       romFileName: formData.romFileName || `${formData.name.replace(/\s+/g, '_')}.rom`,
+      reviews: selectedGame?.reviews || [],
     };
 
     if (selectedGame) {
@@ -99,6 +109,29 @@ export default function GameModal() {
     }
     
     closeModal();
+  };
+
+  const handleSubmitReview = () => {
+    if (!selectedGame) return;
+    if (!newReviewContent.trim()) {
+      alert('请输入评价内容');
+      return;
+    }
+    if (newReviewRating < 1 || newReviewRating > 5) {
+      alert('请选择评分（1-5星）');
+      return;
+    }
+    addReview(selectedGame.id, newReviewRating, newReviewContent);
+    setNewReviewContent('');
+    setNewReviewRating(5);
+  };
+
+  const formatDate = (timestamp: number) => {
+    return new Date(timestamp).toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
   };
 
   if (!isModalOpen) return null;
@@ -268,8 +301,77 @@ export default function GameModal() {
                   ))}
                 </div>
               </div>
+
+              <div>
+                <label className="block font-retro text-lg text-gray-300 mb-2">
+                  我的评分
+                </label>
+                <StarRating
+                  rating={formData.rating}
+                  onRatingChange={(rating) => setFormData(prev => ({ ...prev, rating }))}
+                  size="lg"
+                  showValue
+                />
+              </div>
             </div>
           </div>
+
+          {selectedGame && (
+            <div className="border-t-2 border-neon-blue/20 pt-4 mt-4">
+              <h3 className="font-pixel text-sm text-neon-yellow neon-text mb-4 flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                玩家评价 ({selectedGame.reviews.length})
+              </h3>
+
+              <div className="mb-6 p-4 bg-bg-darker border border-neon-yellow/30">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="font-retro text-sm text-gray-300">写评价</span>
+                  <StarRating
+                    rating={newReviewRating}
+                    onRatingChange={setNewReviewRating}
+                    size="sm"
+                  />
+                </div>
+                <textarea
+                  value={newReviewContent}
+                  onChange={(e) => setNewReviewContent(e.target.value)}
+                  placeholder="分享你对这款游戏的看法..."
+                  className="input-retro w-full h-24 resize-none"
+                />
+                <div className="flex justify-end mt-2">
+                  <button
+                    type="button"
+                    onClick={handleSubmitReview}
+                    className="btn-retro btn-retro-yellow text-sm"
+                  >
+                    发布评价
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-3 max-h-64 overflow-y-auto scrollbar-retro">
+                {selectedGame.reviews.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500 font-retro">
+                    暂无评价，来写第一条评价吧！
+                  </div>
+                ) : (
+                  [...selectedGame.reviews].reverse().map((review) => (
+                    <div key={review.id} className="p-3 bg-bg-darker border border-white/10">
+                      <div className="flex items-center justify-between mb-2">
+                        <StarRating rating={review.rating} size="sm" readonly />
+                        <span className="font-pixel text-[10px] text-gray-500">
+                          {formatDate(review.createdAt)}
+                        </span>
+                      </div>
+                      <p className="font-retro text-sm text-gray-300 leading-relaxed">
+                        {review.content}
+                      </p>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-4 border-t-2 border-neon-blue/20">
             <button

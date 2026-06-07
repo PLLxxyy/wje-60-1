@@ -3,6 +3,13 @@ export type ViewMode = 'grid' | 'list' | 'timeline';
 export type SortField = 'name' | 'releaseYear' | 'platform' | 'createdAt';
 export type SortOrder = 'asc' | 'desc';
 
+export interface Review {
+  id: string;
+  rating: number;
+  content: string;
+  createdAt: number;
+}
+
 export interface Game {
   id: string;
   name: string;
@@ -13,6 +20,8 @@ export interface Game {
   coverImage: string;
   status: GameStatus;
   romFileName: string;
+  rating: number;
+  reviews: Review[];
   createdAt: number;
   updatedAt: number;
 }
@@ -49,11 +58,16 @@ export interface GameStore {
   closeModal: () => void;
   
   filteredGames: Game[];
+  addReview: (gameId: string, rating: number, content: string) => void;
+  setGameRating: (gameId: string, rating: number) => void;
+
   stats: {
     total: number;
     byPlatform: Record<string, number>;
     byStatus: Record<GameStatus, number>;
     oldestGame: Game | null;
     newestGame: Game | null;
+    averageRating: number;
+    totalReviews: number;
   };
 }

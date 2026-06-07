@@ -1,7 +1,19 @@
 import { create } from 'zustand';
-import type { Game, GameStore, GameStatus, SortField } from '../types/game';
+import type { Game, GameStore, GameStatus, SortField, FilterState, SortState } from '../types/game';
 import { loadGames, saveGames, generateId } from '../utils/storage';
 import { mockGames } from '../utils/mockData';
+
+const validateReview = (review: any): review is import('../types/game').Review => {
+  return (
+    review &&
+    typeof review.id === 'string' &&
+    typeof review.rating === 'number' &&
+    review.rating >= 1 &&
+    review.rating <= 5 &&
+    typeof review.content === 'string' &&
+    typeof review.createdAt === 'number'
+  );
+};
 
 const validateGame = (game: any): game is Game => {
   return (
@@ -18,6 +30,11 @@ const validateGame = (game: any): game is Game => {
     typeof game.coverImage === 'string' &&
     ['none', 'playing', 'completed', 'wishlist'].includes(game.status) &&
     typeof game.romFileName === 'string' &&
+    typeof game.rating === 'number' &&
+    game.rating >= 0 &&
+    game.rating <= 5 &&
+    Array.isArray(game.reviews) &&
+    game.reviews.every(validateReview) &&
     typeof game.createdAt === 'number' &&
     typeof game.updatedAt === 'number'
   );
@@ -108,6 +125,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const newGame: Game = {
       ...gameData,
       releaseYear,
+      rating: (gameData as any).rating || 0,
+      reviews: (gameData as any).reviews || [],
       id: generateId(),
       createdAt: now,
       updatedAt: now,
@@ -147,6 +166,43 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   setGameStatus: (id, status) => {
     get().updateGame(id, { status });
+  },
+
+  setGameRating: (id, rating) => {
+    if (rating < 0 || rating > 5) return;
+    get().updateGame(id, { rating });
+  },
+
+  addReview: (gameId, rating, content) => {
+    if (rating < 1 || rating > 5) return;
+    if (!content.trim()) return;
+
+    const newReview = {
+      id: generateId(),
+      rating,
+      content: content.trim(),
+      createdAt: Date.now(),
+    };
+
+    if (!validateReview(newReview)) return;
+
+    const games = get().games.map(g => {
+      if (g.id === gameId) {
+        const reviews = [...g.reviews, newReview];
+        const avgRating = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+        return {
+          ...g,
+          reviews,
+          rating: Math.round(avgRating * 10) / 10,
+          updatedAt: Date.now(),
+        };
+      }
+      return g;
+    });
+
+    const filteredGames = computeFilteredGames(games, get().filters, get().sort);
+    set({ games, filteredGames });
+    saveGames(games);
   },
 
   setFilters: (filters) => {
@@ -232,6 +288,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         byStatus: { none: 0, playing: 0, completed: 0, wishlist: 0 },
         oldestGame: null,
         newestGame: null,
+        averageRating: 0,
+        totalReviews: 0,
       };
     }
 
@@ -240,10 +298,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
     
     let oldestGame = games[0];
     let newestGame = games[0];
+    let totalRatingSum = 0;
+    let ratedGamesCount = 0;
+    let totalReviews = 0;
 
     for (const game of games) {
       byPlatform[game.platform] = (byPlatform[game.platform] || 0) + 1;
       byStatus[game.status]++;
+      
+      if (game.rating > 0) {
+        totalRatingSum += game.rating;
+        ratedGamesCount++;
+      }
+      totalReviews += game.reviews.length;
       
       if (game.releaseYear < oldestGame.releaseYear) {
         oldestGame = game;
@@ -253,12 +320,18 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
     }
 
+    const averageRating = ratedGamesCount > 0
+      ? Math.round((totalRatingSum / ratedGamesCount) * 10) / 10
+      : 0;
+
     return {
       total: games.length,
       byPlatform,
       byStatus,
       oldestGame,
       newestGame,
+      averageRating,
+      totalReviews,
     };
   },
 }));
