@@ -59,57 +59,8 @@ const initialGames = (() => {
   return mockGames;
 })();
 
-const computeFilteredGames = (games: Game[], filters: FilterState, sort: SortState): Game[] => {
-  let result = [...games];
-
-  if (filters.platform) {
-    result = result.filter(g => g.platform === filters.platform);
-  }
-  if (filters.genre) {
-    result = result.filter(g => g.genre === filters.genre);
-  }
-  if (filters.year) {
-    result = result.filter(g => g.releaseYear === filters.year);
-  }
-  if (filters.status) {
-    result = result.filter(g => g.status === filters.status);
-  }
-  if (filters.searchQuery) {
-    const query = filters.searchQuery.toLowerCase();
-    result = result.filter(g =>
-      g.name.toLowerCase().includes(query) ||
-      g.publisher.toLowerCase().includes(query) ||
-      g.romFileName.toLowerCase().includes(query)
-    );
-  }
-
-  const sortField = sort.field as SortField;
-  result.sort((a, b) => {
-    let comparison = 0;
-    if (sortField === 'name') {
-      comparison = a.name.localeCompare(b.name, 'zh-CN');
-    } else if (sortField === 'releaseYear') {
-      comparison = a.releaseYear - b.releaseYear;
-    } else if (sortField === 'platform') {
-      comparison = a.platform.localeCompare(b.platform);
-    } else if (sortField === 'createdAt') {
-      comparison = a.createdAt - b.createdAt;
-    }
-    return sort.order === 'asc' ? comparison : -comparison;
-  });
-
-  return result;
-};
-
 export const useGameStore = create<GameStore>((set, get) => ({
   games: initialGames,
-  filteredGames: computeFilteredGames(initialGames, {
-    platform: null,
-    genre: null,
-    year: null,
-    searchQuery: '',
-    status: null,
-  }, { field: 'name', order: 'asc' }),
   filters: {
     platform: null,
     genre: null,
@@ -146,8 +97,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return;
     }
     const games = [...get().games, newGame];
-    const filteredGames = computeFilteredGames(games, get().filters, get().sort);
-    set({ games, filteredGames });
+    set({ games });
     saveGames(games);
   },
 
@@ -163,21 +113,19 @@ export const useGameStore = create<GameStore>((set, get) => ({
       }
       return g;
     });
-    const filteredGames = computeFilteredGames(games, get().filters, get().sort);
     const updatedGame = games.find(g => g.id === id);
     const newSelectedGame = selectedGame && selectedGame.id === id
       ? updatedGame || null
       : selectedGame;
-    set({ games, filteredGames, selectedGame: newSelectedGame });
+    set({ games, selectedGame: newSelectedGame });
     saveGames(games);
   },
 
   deleteGame: (id) => {
     const { selectedGame } = get();
     const games = get().games.filter(g => g.id !== id);
-    const filteredGames = computeFilteredGames(games, get().filters, get().sort);
     const newSelectedGame = selectedGame && selectedGame.id === id ? null : selectedGame;
-    set({ games, filteredGames, selectedGame: newSelectedGame });
+    set({ games, selectedGame: newSelectedGame });
     saveGames(games);
   },
 
@@ -218,25 +166,22 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return g;
     });
 
-    const filteredGames = computeFilteredGames(games, get().filters, get().sort);
     const updatedGame = games.find(g => g.id === gameId);
     const newSelectedGame = selectedGame && selectedGame.id === gameId
       ? updatedGame || null
       : selectedGame;
-    set({ games, filteredGames, selectedGame: newSelectedGame });
+    set({ games, selectedGame: newSelectedGame });
     saveGames(games);
   },
 
   setFilters: (filters) => {
     const newFilters = { ...get().filters, ...filters };
-    const filteredGames = computeFilteredGames(get().games, newFilters, get().sort);
-    set({ filters: newFilters, filteredGames });
+    set({ filters: newFilters });
   },
 
   setSort: (sort) => {
     const newSort = { ...get().sort, ...sort };
-    const filteredGames = computeFilteredGames(get().games, get().filters, newSort);
-    set({ sort: newSort, filteredGames });
+    set({ sort: newSort });
   },
 
   setViewMode: (mode) => {
