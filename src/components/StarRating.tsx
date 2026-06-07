@@ -33,40 +33,76 @@ export default function StarRating({
     }
   };
 
+  const safeRating = Math.max(0, Math.min(5, rating || 0));
+
+  if (readonly) {
+    return (
+      <div className="flex items-center gap-1">
+        {[1, 2, 3, 4, 5].map((star) => {
+          const isFilled = star <= safeRating;
+          return (
+            <div
+              key={star}
+              className="relative cursor-default"
+            >
+              <Star
+                className={`${sizeClasses[size]} transition-colors ${
+                  isFilled
+                    ? 'text-neon-yellow fill-neon-yellow'
+                    : 'text-gray-600'
+                }`}
+                style={
+                  isFilled
+                    ? { filter: 'drop-shadow(0 0 3px #ffd700)' }
+                    : undefined
+                }
+              />
+            </div>
+          );
+        })}
+        {showValue && safeRating > 0 && (
+          <span className="font-pixel text-xs text-neon-yellow ml-1">
+            {safeRating.toFixed(1)}
+          </span>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-1" onMouseLeave={handleMouseLeave}>
-      {[1, 2, 3, 4, 5].map((star) => (
-        <button
-          key={star}
-          type="button"
-          onClick={() => handleClick(star)}
-          disabled={readonly}
-          className={`relative transition-transform ${
-            !readonly ? 'cursor-pointer hover:scale-125' : 'cursor-default'
-          }`}
-          onMouseEnter={() => {
-            if (!readonly && onRatingChange) {
-              onRatingChange(star);
-            }
-          }}
-        >
-          <Star
-            className={`${sizeClasses[size]} transition-colors ${
-              star <= rating
-                ? 'text-neon-yellow fill-neon-yellow'
-                : 'text-gray-600'
-            }`}
-            style={
-              star <= rating
-                ? { filter: 'drop-shadow(0 0 3px #ffd700)' }
-                : undefined
-            }
-          />
-        </button>
-      ))}
-      {showValue && rating > 0 && (
+      {[1, 2, 3, 4, 5].map((star) => {
+        const isFilled = star <= safeRating;
+        return (
+          <button
+            key={star}
+            type="button"
+            onClick={() => handleClick(star)}
+            className="relative transition-transform cursor-pointer hover:scale-125"
+            onMouseEnter={() => {
+              if (onRatingChange) {
+                onRatingChange(star);
+              }
+            }}
+          >
+            <Star
+              className={`${sizeClasses[size]} transition-colors ${
+                isFilled
+                  ? 'text-neon-yellow fill-neon-yellow'
+                  : 'text-gray-600'
+              }`}
+              style={
+                isFilled
+                  ? { filter: 'drop-shadow(0 0 3px #ffd700)' }
+                  : undefined
+              }
+            />
+          </button>
+        );
+      })}
+      {showValue && safeRating > 0 && (
         <span className="font-pixel text-xs text-neon-yellow ml-1">
-          {rating.toFixed(1)}
+          {safeRating.toFixed(1)}
         </span>
       )}
     </div>

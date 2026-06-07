@@ -40,10 +40,20 @@ const validateGame = (game: any): game is Game => {
   );
 };
 
+const migrateGameData = (game: any): Game => {
+  return {
+    ...game,
+    rating: typeof game.rating === 'number' ? Math.max(0, Math.min(5, game.rating)) : 0,
+    reviews: Array.isArray(game.reviews) ? game.reviews.filter(validateReview) : [],
+    updatedAt: game.updatedAt || Date.now(),
+  };
+};
+
 const initialGames = (() => {
   const saved = loadGames();
   if (saved.length > 0) {
-    const validGames = saved.filter(validateGame);
+    const migratedGames = saved.map(migrateGameData);
+    const validGames = migratedGames.filter(validateGame);
     if (validGames.length > 0) return validGames;
   }
   return mockGames;
@@ -142,6 +152,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   },
 
   updateGame: (id, updates) => {
+    const { selectedGame } = get();
     const games = get().games.map(g => {
       if (g.id === id) {
         const updated = { ...g, ...updates, updatedAt: Date.now() };
@@ -153,14 +164,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
       return g;
     });
     const filteredGames = computeFilteredGames(games, get().filters, get().sort);
-    set({ games, filteredGames });
+    const updatedGame = games.find(g => g.id === id);
+    const newSelectedGame = selectedGame && selectedGame.id === id
+      ? updatedGame || null
+      : selectedGame;
+    set({ games, filteredGames, selectedGame: newSelectedGame });
     saveGames(games);
   },
 
   deleteGame: (id) => {
+    const { selectedGame } = get();
     const games = get().games.filter(g => g.id !== id);
     const filteredGames = computeFilteredGames(games, get().filters, get().sort);
-    set({ games, filteredGames });
+    const newSelectedGame = selectedGame && selectedGame.id === id ? null : selectedGame;
+    set({ games, filteredGames, selectedGame: newSelectedGame });
     saveGames(games);
   },
 
@@ -186,6 +203,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     if (!validateReview(newReview)) return;
 
+    const { selectedGame } = get();
     const games = get().games.map(g => {
       if (g.id === gameId) {
         const reviews = [...g.reviews, newReview];
@@ -201,7 +219,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
     });
 
     const filteredGames = computeFilteredGames(games, get().filters, get().sort);
-    set({ games, filteredGames });
+    const updatedGame = games.find(g => g.id === gameId);
+    const newSelectedGame = selectedGame && selectedGame.id === gameId
+      ? updatedGame || null
+      : selectedGame;
+    set({ games, filteredGames, selectedGame: newSelectedGame });
     saveGames(games);
   },
 

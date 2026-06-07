@@ -38,36 +38,38 @@ export default function GameModal() {
   const [newReviewContent, setNewReviewContent] = useState<string>('');
 
   useEffect(() => {
-    if (selectedGame) {
-      setFormData({
-        name: selectedGame.name,
-        platform: selectedGame.platform,
-        releaseYear: selectedGame.releaseYear,
-        publisher: selectedGame.publisher,
-        genre: selectedGame.genre,
-        coverImage: selectedGame.coverImage,
-        romFileName: selectedGame.romFileName,
-        status: selectedGame.status,
-        rating: selectedGame.rating || 0,
-      });
-      setCoverPreview(selectedGame.coverImage);
-    } else {
-      setFormData({
-        name: '',
-        platform: PLATFORMS[0],
-        releaseYear: new Date().getFullYear(),
-        publisher: '',
-        genre: GENRES[0],
-        coverImage: DEFAULT_COVER,
-        romFileName: '',
-        status: 'none',
-        rating: 0,
-      });
-      setCoverPreview(DEFAULT_COVER);
+    if (isModalOpen) {
+      if (selectedGame) {
+        setFormData({
+          name: selectedGame.name,
+          platform: selectedGame.platform,
+          releaseYear: selectedGame.releaseYear,
+          publisher: selectedGame.publisher,
+          genre: selectedGame.genre,
+          coverImage: selectedGame.coverImage,
+          romFileName: selectedGame.romFileName,
+          status: selectedGame.status,
+          rating: selectedGame.rating || 0,
+        });
+        setCoverPreview(selectedGame.coverImage);
+      } else {
+        setFormData({
+          name: '',
+          platform: PLATFORMS[0],
+          releaseYear: new Date().getFullYear(),
+          publisher: '',
+          genre: GENRES[0],
+          coverImage: DEFAULT_COVER,
+          romFileName: '',
+          status: 'none',
+          rating: 0,
+        });
+        setCoverPreview(DEFAULT_COVER);
+      }
+      setNewReviewRating(5);
+      setNewReviewContent('');
     }
-    setNewReviewRating(5);
-    setNewReviewContent('');
-  }, [selectedGame, isModalOpen]);
+  }, [selectedGame?.id, isModalOpen]);
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -99,6 +101,7 @@ export default function GameModal() {
       ...formData,
       releaseYear: Number(formData.releaseYear),
       romFileName: formData.romFileName || `${formData.name.replace(/\s+/g, '_')}.rom`,
+      rating: Number(formData.rating) || 0,
       reviews: selectedGame?.reviews || [],
     };
 
